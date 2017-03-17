@@ -27,8 +27,13 @@ namespace Heston {
                         double Z_2 = sqrt(std::abs(2 * log(X_1))) * cos(2 * M_PI * X_2);
                         double dW_v = sqrt(dt) * Z_1;
                         double dW_s = sqrt(dt) * (rho * Z_1 + sqrt(1 - rho * rho) * Z_2);
-                        double d_V = kappa * (theta - V) * dt + sigma * sqrt(std::abs(V)) * dW_v;
-                        double d_S = r * S * dt + S * sqrt(std::abs(V)) * dW_s;
+                        //Euler:
+                  //      double d_V = kappa * (theta - V) * dt + sigma * sqrt(std::abs(V)) * dW_v;
+                  //      double d_S = r * S * dt + S * sqrt(std::abs(V)) * dW_s;
+                        //Milstein:
+                        double d_V = kappa * (theta - V) * dt + sigma * sqrt(std::abs(V)) * dW_v + (1.0 / 4)*sigma*sigma*dt*((Z_1)*(Z_1)-1);
+						double d_S = r * S * dt + S * sqrt(std::abs(V)) * dW_s + (1.0 / 2)*S*V*dt*((Z_3)*(Z_3)-1); 
+
                         V += d_V;
                         S += d_S;
                     }
