@@ -1,7 +1,7 @@
 #include "plot.h"
 
 
-void Plot_GBM::set_values(SolvingType RES, Method MTD, double &S, double &K, double &r, double &sigma, double &T, int &M, double d_S){
+void Plot_GBM::set_values(SolvingType RES, Method MTD, double &S, double &K, double &r, double &sigma, double &T, int &M, double &d_S){
     switch (RES){
         case MC:
         switch (MTD) {

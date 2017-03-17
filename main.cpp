@@ -10,7 +10,7 @@ int main() {
     double S_0 = 100.;
     double K = 100. ;
     double r = 0.05;
-    double sigma = 0.4;
+    double sigma = 0.2;
     double T = 1;
 
     //compute the greeks
@@ -42,20 +42,21 @@ int main() {
     double V_range [2] = {0., 1.};
     double T_range [2] = {1., 10.};
     //////////////////////
-    Plot *plt_1 = new Plot_GBM(Spot, S_range[0], S_range[1], N);
-    plt_1->set_values(Analytic, None, S_0, K, r, sigma, T, M[1], delta_S);
-    plt_1->show();
-    delete plt_1;
 
-    Plot *plt_2 = new Plot_GBM(Volatility, V_range[0], V_range[1], N);
-    plt_2->set_values(Analytic, None, S_0, K, r, sigma, T, M[1], delta_S);
-    plt_2->show();
-    delete plt_2;
-
-    Plot *plt_3 = new Plot_GBM(Maturity, T_range[0], T_range[1], N);
-    plt_3->set_values(Analytic, None, S_0, K, r, sigma, T, M[1], delta_S);
-    plt_3->show();
-    delete plt_3;
+//    Plot *plt_1 = new Plot_GBM(Spot, S_range[0], S_range[1], N);
+//    plt_1->set_values(Analytic, None, S_0, K, r, sigma, T, M[1], delta_S);
+//    plt_1->show();
+//    delete plt_1;
+//
+//    Plot *plt_2 = new Plot_GBM(Volatility, V_range[0], V_range[1], N);
+//    plt_2->set_values(Analytic, None, S_0, K, r, sigma, T, M[1], delta_S);
+//    plt_2->show();
+//    delete plt_2;
+//
+//    Plot *plt_3 = new Plot_GBM(Maturity, T_range[0], T_range[1], N);
+//    plt_3->set_values(Analytic, None, S_0, K, r, sigma, T, M[1], delta_S);
+//    plt_3->show();
+//    delete plt_3;
 
     std::cout << "\n--- MC-Direct Method" << std::endl;
     std::cout << std::setw(40) << "Value" << std::setw(30) << "Relative error" << std::setw(30) << "Half-Width" << std::setw(30) << "Computation Time" << std:: endl;
@@ -90,20 +91,30 @@ int main() {
                   std::endl;
     }
 
-    Plot *plt_4 = new Plot_GBM(Spot, S_range[0], S_range[1], N);
-    plt_4->set_values(MC, Antithetic, S_0, K, r, sigma, T, M[1], delta_S);
-    plt_4->show();
-    delete plt_4;
+    std::cout << "\n--- MC-Control Variate Method" << std::endl;
+    std::cout << std::setw(40) << "Value" << std::setw(30) << "Relative error" << std::setw(30) << "Half-Width" << std::setw(30) << "Computation Time" << std::setw(30) << "Estimated correlation" << std:: endl;
+    for(int i(0); i< 3; ++i)
+    {
+        std::vector<double> mc_price = GBM::MC::ControlVariate::call_price(S_0, K, r, sigma, T, M[i]);
+        std::cout << "\n-- Simulations: " << M[i] <<
+                  "\n   price: " << std::setw(30) << mc_price[0] << std::setw(30) << (mc_price[0] - a_price) / a_price << std::setw(30) << mc_price[1] << std::setw(30) << mc_price[2] << std::setw(30) << mc_price[3] <<
+                  std::endl;
+    }
 
-    Plot *plt_5 = new Plot_GBM(Volatility, V_range[0], V_range[1], N);
-    plt_5->set_values(MC, Antithetic, S_0, K, r, sigma, T, M[1], delta_S);
-    plt_5->show();
-    delete plt_5;
-
-    Plot *plt_6 = new Plot_GBM(Maturity, T_range[0], T_range[1], N);
-    plt_6->set_values(MC, Antithetic, S_0, K, r, sigma, T, M[1], delta_S);
-    plt_6->show();
-    delete plt_6;
+//    Plot *plt_4 = new Plot_GBM(Spot, S_range[0], S_range[1], N);
+//    plt_4->set_values(MC, Antithetic, S_0, K, r, sigma, T, M[1], delta_S);
+//    plt_4->show();
+//    delete plt_4;
+//
+//    Plot *plt_5 = new Plot_GBM(Volatility, V_range[0], V_range[1], N);
+//    plt_5->set_values(MC, Antithetic, S_0, K, r, sigma, T, M[1], delta_S);
+//    plt_5->show();
+//    delete plt_5;
+//
+//    Plot *plt_6 = new Plot_GBM(Maturity, T_range[0], T_range[1], N);
+//    plt_6->set_values(MC, Antithetic, S_0, K, r, sigma, T, M[1], delta_S);
+//    plt_6->show();
+//    delete plt_6;
 
     std::cout << "\n" << std::endl;
     std::cout << std::setw(100) << "****************************************************************" << std::endl;
@@ -159,15 +170,25 @@ int main() {
                   std::endl;
     }
 
-    Plot *plt_7 = new Plot_Heston(Spot, S_range[0], S_range[1], N);
-    plt_7->set_values(MC, Antithetic, S_0, K, r, kappa, theta, sigma, rho, T, M[1], delta_S, delta_sigma);
-    plt_7->show();
-    delete plt_7;
+    std::cout << "\n--- MC-Control Variate Method" << std::endl;
+    std::cout << std::setw(40) << "Value" << std::setw(30) << "Relative error" << std::setw(30) << "Half-Width" << std::setw(30) << "Computation Time" << std::setw(30) << "Estimated correlation" << std:: endl;
+    for(int i(0); i< 3; ++i)
+    {
+        std::vector<double> mc_price = Heston::MC::ControlVariate::call_price(S_0, K, r, kappa, theta, sigma, rho, T, M[i]);
+        std::cout << "\n-- Simulations: " << M[i] <<
+                  "\n   price: " << std::setw(30) << mc_price[0] << std::setw(30) << (mc_price[0] - NM_price) / NM_price << std::setw(30) << mc_price[1] << std::setw(30) << mc_price[2] << std::setw(30) << mc_price[3] <<
+                  std::endl;
+    }
 
-    Plot *plt_8 = new Plot_Heston(Maturity, T_range[0], T_range[1], N);
-    plt_8->set_values(MC, Antithetic, S_0, K, r, kappa, theta, sigma, rho, T, M[1], delta_S, delta_sigma);
-    plt_8->show();
-    delete plt_8;
+//    Plot *plt_7 = new Plot_Heston(Spot, S_range[0], S_range[1], N);
+//    plt_7->set_values(MC, Antithetic, S_0, K, r, kappa, theta, sigma, rho, T, M[1], delta_S, delta_sigma);
+//    plt_7->show();
+//    delete plt_7;
+//
+//    Plot *plt_8 = new Plot_Heston(Maturity, T_range[0], T_range[1], N);
+//    plt_8->set_values(MC, Antithetic, S_0, K, r, kappa, theta, sigma, rho, T, M[1], delta_S, delta_sigma);
+//    plt_8->show();
+//    delete plt_8;
 
     return 0;
 }

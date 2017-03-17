@@ -325,7 +325,6 @@ namespace Heston {
                     std::cout << "Condition to ensure V_t > 0 not satisfied" << std::endl;
                     std::exit(0);
                 }
-
                 std::clock_t t = clock();
                 double sum_gamma = 0.;
                 double sum_2_gamma = 0.;
@@ -376,6 +375,94 @@ namespace Heston {
                 double v = ((1 / (double) M) * sum_2_gamma - m * m) / (double) M;
                 double duration = (std::clock() - t) / (double) CLOCKS_PER_SEC;
                 std::vector<double> res = {m, 1.96*sqrt(v / M), duration};
+                return res;
+            }
+        }
+        namespace ControlVariate {
+            std::vector<double>
+            call_price(double &S_0, double &K, double &r, double &kappa, double &theta, double &sigma, double &rho, double &T, int &M){
+                if (2 * kappa * theta < sigma * sigma) {
+                    std::cout << "Condition to ensure V_t > 0 not satisfied" << std::endl;
+                    std::exit(0);
+                }
+                std::clock_t t = clock();
+
+                //pilot simulation
+                double corr = 0.;//correlation between Y and Z, just for information
+                double c = 0.;
+                int p = 1000;
+                int N = 256;
+                double V_0 = 0.04;
+                double dt = T / (double) N;
+                double D = exp(-r * T);
+                double E_Y = 0.;
+                double E_Y_2 = 0.;
+                std::vector<double> V_Y;
+                std::vector<double> V_Z;
+                double Var_Z = 0.;
+                //generate Y and Z samples
+                for (int i(0); i<p; ++i) {
+                    double S_H = S_0;
+                    double S_GBM = S_0;
+                    double V = V_0;
+                    for (int j = 0; j < N; ++j) {
+                        double X_1 = (double) rand() / RAND_MAX;
+                        double X_2 = (double) rand() / RAND_MAX;
+                        double Z_1 = sqrt(std::abs(2 * log(X_1))) * sin(2 * M_PI * X_2);
+                        double Z_2 = sqrt(std::abs(2 * log(X_1))) * cos(2 * M_PI * X_2);
+                        double dW_v = sqrt(dt) * Z_1;
+                        double dW_s = sqrt(dt) * (rho * Z_1 + sqrt(1 - rho * rho) * Z_2);
+                        double dW_GBM = dW_s;
+                        double d_V = kappa * (theta - V) * dt + sigma * sqrt(std::abs(V)) * dW_v;
+                        double d_S_H = r * S_H * dt + S_H * sqrt(std::abs(V)) * dW_s;
+                        double d_S_GBM = r * S_GBM * dt + S_GBM * sqrt(V_0) * dW_s;
+                        V += d_V;
+                        S_H += d_S_H;
+                        S_GBM += d_S_GBM;
+                    }
+                    V_Y.push_back(D * std::max(S_H - K, 0.));
+                    V_Z.push_back(D * std::max(S_GBM - K, 0.));
+                    E_Y += V_Y[i] / p;
+                    E_Y_2 += std::pow(V_Y[i], 2) / p;
+                    Var_Z += std::pow((V_Z[i] - S_0), 2) / p;
+                }
+                for (int i(0); i<p; ++i) {
+                    c += - (V_Y[i] - E_Y) * (V_Z[i] - S_0) / (p*Var_Z);
+                    corr += (V_Y[i] - E_Y) * (V_Z[i] - S_0) / (p*sqrt(Var_Z * (E_Y_2 - std::pow(E_Y, 2))));
+                }
+
+                double sum_price = 0.;
+                double sum_2_price = 0.;
+                for (int i = 0; i < M; ++i) {
+                    double S_H = S_0;
+                    double S_GBM = S_0;
+                    double V = V_0;
+                    for (int j = 0; j < N; ++j) {
+                        double X_1 = (double) rand() / RAND_MAX;
+                        double X_2 = (double) rand() / RAND_MAX;
+                        double Z_1 = sqrt(std::abs(2 * log(X_1))) * sin(2 * M_PI * X_2);
+                        double Z_2 = sqrt(std::abs(2 * log(X_1))) * cos(2 * M_PI * X_2);
+                        double dW_v = sqrt(dt) * Z_1;
+                        double dW_s = sqrt(dt) * (rho * Z_1 + sqrt(1 - rho * rho) * Z_2);
+                        double dW_GBM = dW_s;
+                        double d_V = kappa * (theta - V) * dt + sigma * sqrt(std::abs(V)) * dW_v;
+                        double d_S_H = r * S_H * dt + S_H * sqrt(std::abs(V)) * dW_s;
+                        double d_S_GBM = r * S_GBM * dt + S_GBM * sqrt(V_0) * dW_s;
+                        V += d_V;
+                        S_H += d_S_H;
+                        S_GBM += d_S_GBM;
+                    }
+                    double Y = D*std::max(S_H - K, 0.);
+                    double Z = D*std::max(S_GBM - K, 0.);
+                    double E_Z = GBM::Analytic::call_price(S_0, K, r, sqrt(V_0), T);
+                    double theta_c = Y + c*(Z - E_Z);
+                    sum_price += theta_c;
+                    sum_2_price += std::pow(theta_c, 2);
+                }
+                double m = sum_price / (double) M;
+                double v = ((1 / (double) M) * sum_2_price - m * m) / (double) M;
+                double duration = (std::clock() - t) / (double) CLOCKS_PER_SEC;
+                std::vector<double> res = {m, 1.96*sqrt(v / M), duration, corr};
                 return res;
             }
         }
