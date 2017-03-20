@@ -26,15 +26,15 @@ namespace GBM {
             }
 
             std::vector<double>
-            call_delta(double &S_0, double &K, double &r, double &sigma, double &T, int &M, double d_S) {
+            call_delta(double &S_0, double &K, double &r, double &sigma, double &T, int &M, double &d_S) {
                 std::clock_t t = clock();
                 double sum_delta = 0.;
                 double sum_2_delta = 0.;
                 double D = exp(-r * T);
                 for (int i = 0; i < M; ++i) {
-                    double X_1 = (double) rand() / RAND_MAX;  //Create two uniform random variables
+                    double X_1 = (double) rand() / RAND_MAX;
                     double X_2 = (double) rand() / RAND_MAX;
-                    double W = sqrt(-2 * log(X_1)) * sin(2 * M_PI * X_2); //Generate increment
+                    double W = sqrt(-2 * log(X_1)) * sin(2 * M_PI * X_2);
                     double S_T_m = (S_0 - d_S) * exp(T * (r - 0.5 * sigma * sigma) + sigma * sqrt(T) * W);
                     double S_T_h = (S_0 + d_S) * exp(T * (r - 0.5 * sigma * sigma) + sigma * sqrt(T) * W);
                     double price_m = D * std::max(S_T_m - K, 0.);
@@ -50,7 +50,7 @@ namespace GBM {
             }
 
             std::vector<double>
-            call_gamma(double &S_0, double &K, double &r, double &sigma, double &T, int &M, double d_S) {
+            call_gamma(double &S_0, double &K, double &r, double &sigma, double &T, int &M, double &d_S) {
                 std::clock_t t = clock();
                 double sum_gamma = 0.;
                 double sum_2_gamma = 0.;
@@ -76,7 +76,7 @@ namespace GBM {
             }
 
             std::vector<double>
-            call_vega(double &S_0, double &K, double &r, double &sigma, double &T, int &M, double d_sigma) {
+            call_vega(double &S_0, double &K, double &r, double &sigma, double &T, int &M, double &d_sigma) {
                 std::clock_t t = clock();
                 double sum_vega = 0.;
                 double sum_2_vega = 0.;
@@ -122,7 +122,7 @@ namespace GBM {
             }
 
             std::vector<double>
-            call_delta(double &S_0, double &K, double &r, double &sigma, double &T, int &M, double d_S) {
+            call_delta(double &S_0, double &K, double &r, double &sigma, double &T, int &M, double &d_S) {
                 std::clock_t t = clock();
                 double sum_delta = 0.;
                 double sum_2_delta = 0.;
@@ -150,7 +150,7 @@ namespace GBM {
             }
 
             std::vector<double>
-            call_gamma(double &S_0, double &K, double &r, double &sigma, double &T, int &M, double d_S) {
+            call_gamma(double &S_0, double &K, double &r, double &sigma, double &T, int &M, double &d_S) {
                 std::clock_t t = clock();
                 double sum_gamma = 0.;
                 double sum_2_gamma = 0.;
@@ -182,7 +182,7 @@ namespace GBM {
             }
 
             std::vector<double>
-            call_vega(double &S_0, double &K, double &r, double &sigma, double &T, int &M, double d_sigma) {
+            call_vega(double &S_0, double &K, double &r, double &sigma, double &T, int &M, double &d_sigma) {
                 std::clock_t t = clock();
                 double sum_vega = 0.;
                 double sum_2_vega = 0.;
@@ -206,6 +206,56 @@ namespace GBM {
                 double v = ((1 / (double) M) * sum_2_vega - m * m) / (double) M;
                 double duration = (std::clock() - t) / (double) CLOCKS_PER_SEC;
                 std::vector<double> res = {m, 1.96*sqrt(v / M), duration};
+                return res;
+            }
+        }
+        namespace ControlVariate {
+            std::vector<double> call_price(double &S_0, double &K, double &r, double &sigma, double &T, int &M) {
+                std::clock_t t = clock();
+                //pilot simulation
+                double rho = 0.;//correlation between Y and Z, just for information
+                double c = 0.;
+                int p = 1000;
+                double D = exp(-r * T);
+                double E_Y = 0.;
+                double E_Y_2 = 0.;
+                std::vector<double> V_Y;
+                std::vector<double> V_Z;
+                double Var_Z = 0.;
+                //generate Y and Z samples
+                for (int i(0); i<p; ++i) {
+                    double X_1 = (double) rand() / RAND_MAX;
+                    double X_2 = (double) rand() / RAND_MAX;
+                    double W = sqrt(-2 * log(X_1)) * sin(2 * M_PI * X_2);
+                    double X = S_0 * exp(T * (r - 0.5 * sigma * sigma) + sigma * sqrt(T) * W);
+                    V_Y.push_back(D * std::max(X - K, 0.));
+                    V_Z.push_back(D * X);
+                    E_Y += V_Y[i] / p;
+                    E_Y_2 += std::pow(V_Y[i], 2) / p;
+                    Var_Z += std::pow((V_Z[i] - S_0), 2) / p;
+                }
+                for (int i(0); i<p; ++i) {
+                    c += - (V_Y[i] - E_Y) * (V_Z[i] - S_0) / (p*Var_Z);
+                    rho += (V_Y[i] - E_Y) * (V_Z[i] - S_0) / (p*sqrt(Var_Z * (E_Y_2 - std::pow(E_Y, 2))));
+                }
+
+                double sum_price = 0.;
+                double sum_2_price = 0.;
+                for (int i = 0; i < M; ++i) {
+                    double X_1 = (double) rand() / RAND_MAX;
+                    double X_2 = (double) rand() / RAND_MAX;
+                    double W = sqrt(-2 * log(X_1)) * sin(2 * M_PI * X_2);
+                    double X = S_0 * exp(T * (r - 0.5 * sigma * sigma) + sigma * sqrt(T) * W);
+                    double Y = D * std::max(X - K, 0.);
+                    double Z = D * X;
+                    double theta_c = Y + c*(Z - S_0);
+                    sum_price += theta_c;
+                    sum_2_price += std::pow(theta_c, 2);
+                }
+                double m = sum_price / (double) M;
+                double v = ((1 / (double) M) * sum_2_price - m * m) / (double) M;
+                double duration = (std::clock() - t) / (double) CLOCKS_PER_SEC;
+                std::vector<double> res = {m, 1.96*sqrt(v / M), duration, rho};
                 return res;
             }
         }
@@ -312,7 +362,7 @@ namespace GBM {
                     double X_2 = (double) rand() / RAND_MAX;
                     double W = sqrt(-2 * log(X_1)) * sin(2 * M_PI * X_2);
                     W = W * sig + mu; //Change of measure
-
+                    
                     double S_T_m = S_0 * exp(T * (r - 0.5 * (sigma - d_sigma) * (sigma - d_sigma)) + (sigma - d_sigma) * sqrt(T) * W);
                     double S_T_h = S_0 * exp(T * (r - 0.5 * (sigma + d_sigma) * (sigma + d_sigma)) + (sigma + d_sigma) * sqrt(T) * W);
                     double OptionPrice_m = D*std::max(S_T_m - K, 0.)*(1/sqrt(2*M_PI))*exp(-pow(W,2)/2)/((1/(sig*sqrt(2*M_PI)))*exp(-0.5*(pow((W-mu)/sig,2))));
